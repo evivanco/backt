@@ -30,22 +30,18 @@ void copiar_matriz(int origen[N][N], int destino[N][N]) {
 
 void backtracking_secuencial(int x, int y, int costo_actual, int *mejor_costo, int visitado[N][N]) {
     int i;
-
-    if (costo_actual >= *mejor_costo) {
+    if (costo_actual >= *mejor_costo) { // Restriccion
         return;
     }
-
-    if (x == N - 1 && y == N - 1) {
+    if (x == N - 1 && y == N - 1) { // Restriccion
         if (costo_actual < *mejor_costo) {
             *mejor_costo = costo_actual;
         }
         return;
     }
-
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; i++) { // Avance
         int nx = x + dx[i];
         int ny = y + dy[i];
-
         if (es_valido(nx, ny, visitado)) {
             visitado[nx][ny] = 1;
             backtracking_secuencial(nx, ny, costo_actual + grid[nx][ny], mejor_costo, visitado);
@@ -56,25 +52,19 @@ void backtracking_secuencial(int x, int y, int costo_actual, int *mejor_costo, i
 
 int backtracking_paralelo() {
     int mejor_costo_global = INT_MAX;
-
     int primeros_x[2] = {1, 0};
     int primeros_y[2] = {0, 1};
     int total_ramas = 2;
-
     #pragma omp parallel for shared(mejor_costo_global)
     for (int i = 0; i < total_ramas; i++) {
         int nx = primeros_x[i];
         int ny = primeros_y[i];
-
         if (nx < N && ny < N) {
             int visitado_local[N][N] = {0};
             int mejor_costo_local = INT_MAX;
-
             visitado_local[0][0] = 1;
             visitado_local[nx][ny] = 1;
-
             backtracking_secuencial(nx, ny, grid[0][0] + grid[nx][ny], &mejor_costo_local, visitado_local);
-
             #pragma omp critical
             {
                 if (mejor_costo_local < mejor_costo_global) {
@@ -88,12 +78,13 @@ int backtracking_paralelo() {
 }
 
 int main() {
+    omp_set_num_threads(4);
     int mejor_costo_sec = INT_MAX;
     int visitado[N][N] = {0};
 
     visitado[0][0] = 1;
 
-    printf("=== Camino mas corto con Backtracking en C ===\n\n");
+    printf("=== Camino mas corto con Backtracking en C ===\n");
 
     double inicio_sec = omp_get_wtime();
     backtracking_secuencial(0, 0, grid[0][0], &mejor_costo_sec, visitado);
@@ -108,10 +99,10 @@ int main() {
     double tiempo_par = fin_par - inicio_par;
 
     printf("Mejor costo secuencial : %d\n", mejor_costo_sec);
-    printf("Tiempo secuencial      : %.8f segundos\n\n", tiempo_sec);
+    printf("Tiempo secuencial      : %.8f segundos\n", tiempo_sec);
 
     printf("Mejor costo paralelo   : %d\n", mejor_costo_par);
-    printf("Tiempo paralelo        : %.8f segundos\n\n", tiempo_par);
+    printf("Tiempo paralelo        : %.8f segundos\n", tiempo_par);
 
     if (tiempo_par > 0.0) {
         printf("Speedup aproximado     : %.4f\n", tiempo_sec / tiempo_par);
